@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Check-In</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Student Check-In</h1>
+        <form id="check-in-form" class="form">
+            <label for="student-name" class="label">Name:</label>
+            <input type="text" id="student-name" class="input" required>
+
+            <label for="student-id" class="label">Student ID:</label>
+            <input type="text" id="student-id" class="input" required>
+
+            <button type="submit" class="btn-submit">Submit</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('check-in-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('sessionId');
+            const studentName = document.getElementById('student-name').value;
+            const studentId = document.getElementById('student-id').value;
+
+            fetch('/api/mark-attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: sessionId, studentName: studentName, studentId: studentId })
+            }).then(response => {
+                if (response.ok) {
+                    alert('Attendance marked successfully.');
+                } else {
+                    alert('Error marking attendance or you have already checked in.');
+                }
+            }).catch(error => {
+                console.error('Error in attendance submission:', error);
+            });
+        });
+    </script>
+</body>
+</html>

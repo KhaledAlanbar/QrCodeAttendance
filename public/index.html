@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Attendance System</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Generate QR Code for Class</h1>
+        <form id="qr-form" class="form">
+            <label for="class-id" class="label">Class ID:</label>
+            <input type="text" id="class-id" class="input" required>
+            <button type="submit" class="btn-submit">Generate QR Code</button>
+        </form>
+        <div id="qr-code"></div>
+
+        <h2 class="title">Attendance List</h2>
+        <table id="attendance-table" class="attendance-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Student ID</th>
+                </tr>
+            </thead>
+            <tbody id="attendance-list"></tbody>
+        </table>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        const form = document.getElementById('qr-form');
+        const qrCodeDiv = document.getElementById('qr-code');
+        let sessionId = '';
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const classId = document.getElementById('class-id').value;
+            sessionId = `${classId}-${Date.now()}`;
+            const checkInUrl = `https://your-domain.pages.dev/student-check-in.html?sessionId=${sessionId}`;
+
+            qrCodeDiv.innerHTML = '';
+
+            new QRCode(qrCodeDiv, {
+                text: checkInUrl,
+                width: 200,
+                height: 200
+            });
+
+            fetchAttendanceList();
+        });
+
+        function fetchAttendanceList() {
+            if (!sessionId) return;
+
+            fetch(`/api/get-attendance-list?sessionId=${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const attendanceList = document.getElementById('attendance-list');
+                    attendanceList.innerHTML = '';
+
+                    data.forEach(student => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td>${student.student_name}</td><td>${student.student_id}</td>`;
+                        attendanceList.appendChild(row);
+                    });
+
+                    setTimeout(fetchAttendanceList, 5000);
+                })
+                .catch(error => {
+                    console.error('Error fetching attendance list:', error);
+                });
+        }
+    </script>
+</body>
+</html>
