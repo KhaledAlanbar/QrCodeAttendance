@@ -1,7 +1,7 @@
 name = "qr-code-attendance-worker"
 type = "javascript"
 
-main = "./worker.js"
+main = "/worker.js"
 
 account_id = "360dc20d79673a3ee77c326c98e2acb5"
 compatibility_date = "2024-10-07"
