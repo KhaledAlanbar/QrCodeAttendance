@@ -9,7 +9,7 @@ addEventListener('fetch', event => {
   }
 });
 
-// Function to handle student check-in
+// Function to handle student check-in.
 async function handleMarkAttendance(request) {
   try {
     const data = await request.json();
