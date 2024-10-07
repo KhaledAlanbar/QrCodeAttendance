@@ -38,7 +38,10 @@
             e.preventDefault();
             const classId = document.getElementById('class-id').value;
             sessionId = `${classId}-${Date.now()}`;
-            const checkInUrl = `https://qrcodeattendance.pages.dev/student-check-in.html?sessionId=${sessionId}`;
+            
+            const currentDomain = window.location.origin;
+            const checkInUrl = `${currentDomain}/student-check-in.html?sessionId=${sessionId}`;
+
 
             qrCodeDiv.innerHTML = '';
 
