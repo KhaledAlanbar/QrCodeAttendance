@@ -1,77 +1,48 @@
-addEventListener('fetch', event => {
-  const { request } = event;
-  if (request.method === 'POST' && request.url.includes('/api/mark-attendance')) {
-    event.respondWith(handleMarkAttendance(request));
-  } else if (request.method === 'GET' && request.url.includes('/api/get-attendance-list')) {
-    event.respondWith(handleGetAttendanceList(request));
-  } else {
-    event.respondWith(new Response('Not found', { status: 404 }));
-  }
-});
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const pathname = url.pathname;
 
-// Function to handle student check-in.
-async function handleMarkAttendance(request) {
-  try {
-    const data = await request.json();
-    const { sessionId, studentName, studentId } = data;
-
-    console.log(`Received check-in request: sessionId=${sessionId}, studentName=${studentName}, studentId=${studentId}`);
-
-    if (!sessionId || !studentName || !studentId) {
-      console.log('Error: Missing parameters');
-      return new Response(JSON.stringify({ status: 'error', message: 'Please provide all required details: sessionId, student name, and student ID.' }), { status: 400 });
+    if (pathname === '/api/mark-attendance' && request.method === 'POST') {
+      return await env.ATTENDANCE_OBJECT.fetch(request);
+    } else if (pathname === '/api/get-attendance-list' && request.method === 'GET') {
+      return await env.ATTENDANCE_OBJECT.fetch(request);
+    } else {
+      return new Response('Not found', { status: 404 });
     }
-
-    // Check if the student has already checked in for the session
-    const existingAttendance = await ATTENDANCE.get(`${sessionId}-${studentId}`);
-    console.log(`Existing attendance check for studentId=${studentId}: ${existingAttendance}`);
-
-    if (existingAttendance) {
-      console.log(`Student ${studentId} has already checked in for session ${sessionId}`);
-      return new Response(JSON.stringify({ status: 'already_marked', message: 'You have already checked in for this session.' }), { status: 403 });
-    }
-
-    // Store the student's attendance in the KV Namespace
-    await ATTENDANCE.put(`${sessionId}-${studentId}`, JSON.stringify({ studentName, studentId }));
-    console.log(`Student ${studentId} successfully checked in for session ${sessionId}`);
-    return new Response(JSON.stringify({ status: 'success', message: 'Check-in successful!' }), { status: 200 });
-  } catch (error) {
-    console.error('Error during attendance check-in:', error.message);
-    console.error('Error stack:', error.stack); // Additional error details for debugging
-    return new Response(JSON.stringify({ status: 'error', message: 'Server error occurred. Please try again.', details: error.message }), { status: 500 });
   }
 }
 
-// Function to retrieve the list of students who have checked in for a session
-async function handleGetAttendanceList(request) {
-  try {
+export class AttendanceDurableObject {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+  }
+
+  async fetch(request) {
     const url = new URL(request.url);
-    const sessionId = url.searchParams.get('sessionId');
+    const pathname = url.pathname;
 
-    console.log(`Retrieving attendance list for sessionId=${sessionId}`);
+    if (pathname === '/api/mark-attendance' && request.method === 'POST') {
+      const { sessionId, studentName, studentId } = await request.json();
+      const attendanceList = await this.state.storage.get(sessionId) || [];
+      
+      // Check if student has already checked in
+      if (attendanceList.some(student => student.studentId === studentId)) {
+        return new Response(JSON.stringify({ status: 'already_marked', message: 'You have already checked in.' }), { status: 403 });
+      }
 
-    if (!sessionId) {
-      console.log('Error: Missing sessionId parameter');
-      return new Response(JSON.stringify({ status: 'error', message: 'Missing sessionId parameter' }), { status: 400 });
+      attendanceList.push({ studentName, studentId });
+      await this.state.storage.put(sessionId, attendanceList);
+      return new Response(JSON.stringify({ status: 'success', message: 'Check-in successful!' }), { status: 200 });
     }
 
-    // Retrieve all keys related to the session from the KV Namespace
-    const keys = await ATTENDANCE.list({ prefix: sessionId });
-    console.log(`Keys found for sessionId=${sessionId}: ${JSON.stringify(keys.keys)}`);
+    if (pathname === '/api/get-attendance-list' && request.method === 'GET') {
+      const sessionId = url.searchParams.get('sessionId');
+      const attendanceList = await this.state.storage.get(sessionId) || [];
+      return new Response(JSON.stringify({ status: 'success', data: attendanceList }), { status: 200 });
+    }
 
-    const attendanceData = await Promise.all(
-      keys.keys.map(async key => {
-        const data = await ATTENDANCE.get(key.name);
-        console.log(`Data retrieved for key=${key.name}: ${data}`);
-        return JSON.parse(data);
-      })
-    );
-
-    console.log(`Attendance data for sessionId=${sessionId}: ${JSON.stringify(attendanceData)}`);
-    return new Response(JSON.stringify({ status: 'success', data: attendanceData }), { status: 200 });
-  } catch (error) {
-    console.error('Error during attendance list retrieval:', error.message);
-    console.error('Error stack:', error.stack);
-    return new Response(JSON.stringify({ status: 'error', message: 'Server error', details: error.message }), { status: 500 });
+    return new Response('Not found', { status: 404 });
   }
 }
