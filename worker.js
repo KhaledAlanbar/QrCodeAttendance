@@ -36,8 +36,9 @@ async function handleMarkAttendance(request) {
     console.log(`Student ${studentId} successfully checked in for session ${sessionId}`);
     return new Response(JSON.stringify({ status: 'success', message: 'Check-in successful!' }), { status: 200 });
   } catch (error) {
-    console.error('Error during attendance check-in:', error);
-    return new Response(JSON.stringify({ status: 'error', message: 'There was a server error. Please try again later.', details: error.message }), { status: 500 });
+    console.error('Error during attendance check-in:', error.message);
+    console.error('Error stack:', error.stack); // Additional error details for debugging
+    return new Response(JSON.stringify({ status: 'error', message: 'Server error occurred. Please try again.', details: error.message }), { status: 500 });
   }
 }
 
@@ -69,7 +70,8 @@ async function handleGetAttendanceList(request) {
     console.log(`Attendance data for sessionId=${sessionId}: ${JSON.stringify(attendanceData)}`);
     return new Response(JSON.stringify({ status: 'success', data: attendanceData }), { status: 200 });
   } catch (error) {
-    console.error('Error during attendance list retrieval:', error);
+    console.error('Error during attendance list retrieval:', error.message);
+    console.error('Error stack:', error.stack);
     return new Response(JSON.stringify({ status: 'error', message: 'Server error', details: error.message }), { status: 500 });
   }
 }
