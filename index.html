@@ -42,7 +42,6 @@
             const currentDomain = window.location.origin;
             const checkInUrl = `${currentDomain}/student-check-in.html?sessionId=${sessionId}`;
 
-
             qrCodeDiv.innerHTML = '';
 
             new QRCode(qrCodeDiv, {
@@ -63,12 +62,13 @@
                     const attendanceList = document.getElementById('attendance-list');
                     attendanceList.innerHTML = '';
 
-                    data.forEach(student => {
+                    data.data.forEach(student => { // Use 'data.data' to correctly access the list
                         const row = document.createElement('tr');
-                        row.innerHTML = `<td>${student.student_name}</td><td>${student.student_id}</td>`;
+                        row.innerHTML = `<td>${student.studentName}</td><td>${student.studentId}</td>`;
                         attendanceList.appendChild(row);
                     });
 
+                    // Automatically refresh the attendance list every 5 seconds
                     setTimeout(fetchAttendanceList, 5000);
                 })
                 .catch(error => {
